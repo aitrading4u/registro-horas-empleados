@@ -192,13 +192,7 @@ export default function DashboardPage() {
 
       // Verificar distancia (en producción será más estricto)
       if (selectedOrg.latitude && selectedOrg.longitude) {
-        console.log('🔵 [Fichaje] Verificando distancia:', {
-          ubicacionUsuario: { lat: position.lat, lon: position.lon },
-          ubicacionOrganizacion: { lat: selectedOrg.latitude, lon: selectedOrg.longitude },
-          radioPermitido: `${selectedOrg.allowed_radius}m`,
-          precisionGPS: position.accuracy ? `${Math.round(position.accuracy)}m` : 'desconocida',
-        })
-        
+        const accuracy = position.accuracy || 0
         const distance = calculateDistance(
           position.lat,
           position.lon,
@@ -206,20 +200,52 @@ export default function DashboardPage() {
           selectedOrg.longitude
         )
 
-        console.log('🔵 [Fichaje] Distancia calculada:', {
-          distancia: `${Math.round(distance)}m`,
+        console.log('🔵 [Fichaje] Verificando distancia:', {
+          ubicacionUsuario: { lat: position.lat, lon: position.lon },
+          ubicacionOrganizacion: { lat: selectedOrg.latitude, lon: selectedOrg.longitude },
           radioPermitido: `${selectedOrg.allowed_radius}m`,
-          dentroDelRadio: distance <= selectedOrg.allowed_radius,
+          precisionGPS: `${Math.round(accuracy)}m`,
+          distanciaCalculada: `${Math.round(distance)}m`,
         })
 
-        if (distance > selectedOrg.allowed_radius) {
-          const mensaje = `Estás fuera del radio permitido (${selectedOrg.allowed_radius}m).\n\nDistancia: ${Math.round(distance)}m\n\nVerifica que:\n- El GPS esté activado\n- Estés en la ubicación correcta\n- Las coordenadas de la organización sean correctas`
-          alert(mensaje)
-          setFichando(false)
-          return
+        // Si la precisión del GPS es muy mala (>100m), ajustar el radio permitido
+        // para compensar la imprecisión
+        const adjustedRadius = accuracy > 100 
+          ? selectedOrg.allowed_radius + Math.round(accuracy * 0.5) // Aumentar radio en 50% de la precisión
+          : selectedOrg.allowed_radius
+
+        console.log('🔵 [Fichaje] Radio ajustado por precisión:', {
+          radioOriginal: `${selectedOrg.allowed_radius}m`,
+          precisionGPS: `${Math.round(accuracy)}m`,
+          radioAjustado: `${adjustedRadius}m`,
+          distancia: `${Math.round(distance)}m`,
+          dentroDelRadio: distance <= adjustedRadius,
+        })
+
+        if (distance > adjustedRadius) {
+          let mensaje = `Estás fuera del radio permitido (${selectedOrg.allowed_radius}m).\n\n`
+          mensaje += `Distancia: ${Math.round(distance)}m\n`
+          mensaje += `Precisión GPS: ${Math.round(accuracy)}m\n\n`
+          
+          if (accuracy > 100) {
+            mensaje += `⚠️ La precisión del GPS es baja. Intenta:\n`
+            mensaje += `- Activar el GPS del dispositivo\n`
+            mensaje += `- Salir al exterior para mejor señal\n`
+            mensaje += `- Esperar unos segundos para que el GPS se estabilice\n\n`
+          }
+          
+          mensaje += `¿Deseas fichar de todas formas? (Solo si estás seguro de estar en la ubicación correcta)`
+          
+          const confirmar = confirm(mensaje)
+          if (!confirmar) {
+            setFichando(false)
+            return
+          }
+          
+          console.warn('⚠️ [Fichaje] Fichaje permitido manualmente a pesar de estar fuera del radio')
+        } else {
+          console.log('✅ [Fichaje] Distancia válida, procediendo con el fichaje')
         }
-        
-        console.log('✅ [Fichaje] Distancia válida, procediendo con el fichaje')
       } else {
         console.warn('⚠️ [Fichaje] La organización no tiene coordenadas configuradas')
       }
@@ -269,34 +295,109 @@ export default function DashboardPage() {
         return
       }
 
-      console.log('🔵 [GPS] Obteniendo ubicación GPS...')
+      console.log('🔵 [GPS] Obteniendo ubicación GPS con alta precisión...')
       
-      navigator.geolocation.getCurrentPosition(
+      // Intentar obtener posición con watchPosition para mejor precisión
+      let watchId: number | null = null
+      let positionObtained = false
+      const timeoutId = setTimeout(() => {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId)
+        }
+        if (!positionObtained) {
+          console.warn('⚠️ [GPS] Timeout, intentando con getCurrentPosition...')
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const coords = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              }
+              console.log('✅ [GPS] Ubicación obtenida (fallback):', {
+                lat: coords.lat,
+                lon: coords.lon,
+                accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
+              })
+              resolve(coords)
+            },
+            (error) => {
+              console.error('❌ [GPS] Error obteniendo ubicación:', error)
+              resolve({ lat: 40.4168, lon: -3.7038 })
+            },
+            { timeout: 5000, enableHighAccuracy: true, maximumAge: 0 }
+          )
+        }
+      }, 15000) // Timeout de 15 segundos
+
+      // Usar watchPosition para obtener mejor precisión
+      watchId = navigator.geolocation.watchPosition(
         (position) => {
-          const coords = {
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-            accuracy: position.coords.accuracy,
+          const accuracy = position.coords.accuracy || 0
+          
+          // Si la precisión es buena (<50m) o ya pasaron 5 segundos, usar esta posición
+          if (accuracy < 50 || Date.now() - startTime > 5000) {
+            if (watchId !== null) {
+              navigator.geolocation.clearWatch(watchId)
+            }
+            clearTimeout(timeoutId)
+            
+            if (!positionObtained) {
+              positionObtained = true
+              const coords = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              }
+              console.log('✅ [GPS] Ubicación obtenida:', {
+                lat: coords.lat,
+                lon: coords.lon,
+                accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
+                tiempo: `${Math.round((Date.now() - startTime) / 1000)}s`,
+              })
+              resolve(coords)
+            }
           }
-          console.log('✅ [GPS] Ubicación obtenida:', {
-            lat: coords.lat,
-            lon: coords.lon,
-            accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
-          })
-          resolve(coords)
         },
         (error) => {
-          console.error('❌ [GPS] Error obteniendo ubicación:', error)
-          // En desarrollo, simular posición si falla
-          console.warn('⚠️ [GPS] Usando posición por defecto debido al error')
-          resolve({ lat: 40.4168, lon: -3.7038 })
+          if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId)
+          }
+          clearTimeout(timeoutId)
+          
+          if (!positionObtained) {
+            positionObtained = true
+            console.error('❌ [GPS] Error obteniendo ubicación:', error)
+            // Intentar con getCurrentPosition como fallback
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const coords = {
+                  lat: position.coords.latitude,
+                  lon: position.coords.longitude,
+                  accuracy: position.coords.accuracy,
+                }
+                console.log('✅ [GPS] Ubicación obtenida (fallback):', {
+                  lat: coords.lat,
+                  lon: coords.lon,
+                  accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
+                })
+                resolve(coords)
+              },
+              () => {
+                console.warn('⚠️ [GPS] Usando posición por defecto debido al error')
+                resolve({ lat: 40.4168, lon: -3.7038 })
+              },
+              { timeout: 5000, enableHighAccuracy: true, maximumAge: 0 }
+            )
+          }
         },
         { 
-          timeout: 10000, // Aumentar timeout a 10 segundos
-          enableHighAccuracy: true, // Solicitar alta precisión
-          maximumAge: 0 // No usar caché, obtener posición fresca
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 20000
         }
       )
+      
+      const startTime = Date.now()
     })
   }
 
