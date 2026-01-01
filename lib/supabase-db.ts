@@ -340,14 +340,22 @@ export async function createIncident(incident: Omit<Incident, 'id' | 'created_at
       status: incident.status,
       date: incident.date,
       description: incident.description,
-      approved_by: incident.approved_by,
-      approved_at: incident.approved_at,
+      time_entry_id: incident.time_entry_id,
+      approved_by: incident.reviewed_by,
+      approved_at: incident.reviewed_at,
     })
     .select()
     .single()
 
   if (error) throw error
-  return data as Incident
+  
+  // Mapear los campos de la base de datos al tipo TypeScript
+  const result = data as any
+  return {
+    ...result,
+    reviewed_by: result.approved_by,
+    reviewed_at: result.approved_at,
+  } as Incident
 }
 
 export async function getIncidents(
@@ -368,7 +376,12 @@ export async function getIncidents(
   const { data, error } = await query
 
   if (error || !data) return []
-  return data as Incident[]
+  // Mapear los campos de la base de datos al tipo TypeScript
+  return (data as any[]).map(item => ({
+    ...item,
+    reviewed_by: item.approved_by,
+    reviewed_at: item.approved_at,
+  })) as Incident[]
 }
 
 export async function updateIncident(
@@ -376,15 +389,34 @@ export async function updateIncident(
   updates: Partial<Incident>
 ): Promise<Incident | null> {
   const supabase = getSupabaseClient()
+  
+  // Mapear los campos del tipo TypeScript a los campos de la base de datos
+  const dbUpdates: any = { ...updates }
+  if ('reviewed_by' in updates) {
+    dbUpdates.approved_by = updates.reviewed_by
+    delete dbUpdates.reviewed_by
+  }
+  if ('reviewed_at' in updates) {
+    dbUpdates.approved_at = updates.reviewed_at
+    delete dbUpdates.reviewed_at
+  }
+  
   const { data, error } = await supabase
     .from('incidents')
-    .update(updates)
+    .update(dbUpdates)
     .eq('id', incidentId)
     .select()
     .single()
 
   if (error || !data) return null
-  return data as Incident
+  
+  // Mapear los campos de la base de datos al tipo TypeScript
+  const result = data as any
+  return {
+    ...result,
+    reviewed_by: result.approved_by,
+    reviewed_at: result.approved_at,
+  } as Incident
 }
 
 // ============ SCHEDULED TIMES ============

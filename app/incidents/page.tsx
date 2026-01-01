@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentUserMock } from '@/lib/auth-mock'
 import { getUserOrganizations } from '@/lib/organizations'
-import { mockDb, getIncidents, updateIncident } from '@/lib/db'
+import { mockDb, getIncidents, updateIncident, createIncident } from '@/lib/db'
 import type { User, Organization, Incident } from '@/types'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -321,13 +321,16 @@ function CreateIncidentForm({
     setLoading(true)
 
     try {
-      await mockDb.createIncident({
+      await createIncident({
         organization_id: organizationId,
         user_id: userId,
         type: formData.type,
         date: formData.date,
         description: formData.description.trim(), // Descripción obligatoria
         time_entry_id: null,
+        status: 'PENDING',
+        reviewed_by: null,
+        reviewed_at: null,
       })
       onSuccess()
     } catch (error) {
