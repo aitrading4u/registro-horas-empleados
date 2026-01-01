@@ -181,13 +181,38 @@ export default function DashboardPage() {
     setFichando(true)
 
     try {
-      // Simular obtención de GPS (en producción será real)
-      const position = await getCurrentPosition()
+      // Obtener ubicación GPS
+      let position = await getCurrentPosition()
       
       if (!position) {
-        alert('No se pudo obtener la ubicación GPS. Por favor, activa el GPS.')
-        setFichando(false)
-        return
+        // Si no se puede obtener GPS, preguntar si quiere fichar de todas formas
+        const confirmar = confirm(
+          'No se pudo obtener tu ubicación GPS.\n\n' +
+          'Posibles causas:\n' +
+          '- GPS desactivado\n' +
+          '- Permisos de ubicación denegados\n' +
+          '- Problema de conexión\n\n' +
+          '¿Deseas fichar de todas formas? (Solo si estás seguro de estar en la ubicación correcta)'
+        )
+        
+        if (!confirmar) {
+          setFichando(false)
+          return
+        }
+        
+        // Si confirma, usar coordenadas de la organización como fallback
+        if (selectedOrg.latitude && selectedOrg.longitude) {
+          console.warn('⚠️ [Fichaje] Usando coordenadas de la organización como fallback')
+          position = {
+            lat: selectedOrg.latitude,
+            lon: selectedOrg.longitude,
+            accuracy: 0, // Precisión desconocida
+          }
+        } else {
+          alert('No se puede fichar: no hay ubicación GPS y la organización no tiene coordenadas configuradas.')
+          setFichando(false)
+          return
+        }
       }
 
       // Verificar distancia (en producción será más estricto)
@@ -290,8 +315,8 @@ export default function DashboardPage() {
   const getCurrentPosition = (): Promise<{ lat: number; lon: number; accuracy?: number } | null> => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
-        console.warn('⚠️ [GPS] Geolocalización no disponible, usando posición por defecto')
-        resolve({ lat: 40.4168, lon: -3.7038 })
+        console.warn('⚠️ [GPS] Geolocalización no disponible')
+        resolve(null) // No usar posición por defecto
         return
       }
 
@@ -322,7 +347,7 @@ export default function DashboardPage() {
             },
             (error) => {
               console.error('❌ [GPS] Error obteniendo ubicación:', error)
-              resolve({ lat: 40.4168, lon: -3.7038 })
+              resolve(null) // No usar posición por defecto
             },
             { timeout: 5000, enableHighAccuracy: true, maximumAge: 0 }
           )
@@ -382,10 +407,11 @@ export default function DashboardPage() {
                 })
                 resolve(coords)
               },
-              () => {
-                console.warn('⚠️ [GPS] Usando posición por defecto debido al error')
-                resolve({ lat: 40.4168, lon: -3.7038 })
-              },
+            () => {
+              console.error('❌ [GPS] Error obteniendo ubicación (fallback también falló)')
+              // No usar posición por defecto, retornar null para que el usuario sepa que hay un problema
+              resolve(null)
+            },
               { timeout: 5000, enableHighAccuracy: true, maximumAge: 0 }
             )
           }
