@@ -192,6 +192,13 @@ export default function DashboardPage() {
 
       // Verificar distancia (en producción será más estricto)
       if (selectedOrg.latitude && selectedOrg.longitude) {
+        console.log('🔵 [Fichaje] Verificando distancia:', {
+          ubicacionUsuario: { lat: position.lat, lon: position.lon },
+          ubicacionOrganizacion: { lat: selectedOrg.latitude, lon: selectedOrg.longitude },
+          radioPermitido: `${selectedOrg.allowed_radius}m`,
+          precisionGPS: position.accuracy ? `${Math.round(position.accuracy)}m` : 'desconocida',
+        })
+        
         const distance = calculateDistance(
           position.lat,
           position.lon,
@@ -199,11 +206,22 @@ export default function DashboardPage() {
           selectedOrg.longitude
         )
 
+        console.log('🔵 [Fichaje] Distancia calculada:', {
+          distancia: `${Math.round(distance)}m`,
+          radioPermitido: `${selectedOrg.allowed_radius}m`,
+          dentroDelRadio: distance <= selectedOrg.allowed_radius,
+        })
+
         if (distance > selectedOrg.allowed_radius) {
-          alert(`Estás fuera del radio permitido (${selectedOrg.allowed_radius}m). Distancia: ${Math.round(distance)}m`)
+          const mensaje = `Estás fuera del radio permitido (${selectedOrg.allowed_radius}m).\n\nDistancia: ${Math.round(distance)}m\n\nVerifica que:\n- El GPS esté activado\n- Estés en la ubicación correcta\n- Las coordenadas de la organización sean correctas`
+          alert(mensaje)
           setFichando(false)
           return
         }
+        
+        console.log('✅ [Fichaje] Distancia válida, procediendo con el fichaje')
+      } else {
+        console.warn('⚠️ [Fichaje] La organización no tiene coordenadas configuradas')
       }
 
       await mockDb.createTimeEntry({
@@ -243,26 +261,41 @@ export default function DashboardPage() {
     }
   }
 
-  const getCurrentPosition = (): Promise<{ lat: number; lon: number } | null> => {
+  const getCurrentPosition = (): Promise<{ lat: number; lon: number; accuracy?: number } | null> => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
-        // En desarrollo, simular posición
+        console.warn('⚠️ [GPS] Geolocalización no disponible, usando posición por defecto')
         resolve({ lat: 40.4168, lon: -3.7038 })
         return
       }
 
+      console.log('🔵 [GPS] Obteniendo ubicación GPS...')
+      
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          resolve({
+          const coords = {
             lat: position.coords.latitude,
             lon: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          }
+          console.log('✅ [GPS] Ubicación obtenida:', {
+            lat: coords.lat,
+            lon: coords.lon,
+            accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
           })
+          resolve(coords)
         },
-        () => {
+        (error) => {
+          console.error('❌ [GPS] Error obteniendo ubicación:', error)
           // En desarrollo, simular posición si falla
+          console.warn('⚠️ [GPS] Usando posición por defecto debido al error')
           resolve({ lat: 40.4168, lon: -3.7038 })
         },
-        { timeout: 5000 }
+        { 
+          timeout: 10000, // Aumentar timeout a 10 segundos
+          enableHighAccuracy: true, // Solicitar alta precisión
+          maximumAge: 0 // No usar caché, obtener posición fresca
+        }
       )
     })
   }
