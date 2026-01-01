@@ -1,0 +1,15 @@
+{
+  "name": "Control Horario - Restaurantes",
+  "short_name": "Control Horario",
+  "description": "Sistema de control horario profesional para restaurantes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [],
+  "categories": ["business", "productivity"],
+  "lang": "es",
+  "dir": "ltr"
+}
+

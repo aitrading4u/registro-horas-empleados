@@ -1,0 +1,17 @@
+-- Desactivar RLS - Ejecuta cada línea por separado si es necesario
+
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+
+ALTER TABLE organizations DISABLE ROW LEVEL SECURITY;
+
+ALTER TABLE organization_members DISABLE ROW LEVEL SECURITY;
+
+ALTER TABLE time_entries DISABLE ROW LEVEL SECURITY;
+
+ALTER TABLE incidents DISABLE ROW LEVEL SECURITY;
+
+ALTER TABLE scheduled_times DISABLE ROW LEVEL SECURITY;
+
+ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
+
+
