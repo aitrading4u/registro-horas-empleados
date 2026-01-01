@@ -77,11 +77,13 @@ export default function CalendarPage() {
     // Si es ADMIN o MANAGER, cargar todos los fichajes del restaurante
     // Si es EMPLOYEE, solo los suyos
     const canManage = canManageOrganization(currentRole)
-    const userId = canManage ? undefined : user.id
+    // For admins/managers, pass null to get all entries
+    // For regular users, pass their user ID
+    const userId = canManage ? null : user.id
 
     const entriesData = await mockDb.getTimeEntries(
       selectedOrg.id,
-      userId, // This will be undefined for admins/managers, which is handled by mockDb
+      userId,
       startDate,
       endDate
     )

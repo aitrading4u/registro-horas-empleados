@@ -347,7 +347,7 @@ class MockDatabase {
 
   async getTimeEntries(
     organizationId: string,
-    userId?: string,
+    userId: string | null,
     startDate?: string,
     endDate?: string
   ): Promise<TimeEntry[]> {
