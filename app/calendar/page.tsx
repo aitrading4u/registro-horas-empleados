@@ -81,7 +81,7 @@ export default function CalendarPage() {
 
     const entriesData = await mockDb.getTimeEntries(
       selectedOrg.id,
-      userId,
+      userId || null, // Pass null instead of undefined when userId is not available
       startDate,
       endDate
     )
