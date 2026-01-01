@@ -33,28 +33,55 @@ export async function signUpMock(
     throw new Error('Solo el primer usuario puede registrarse como administrador')
   }
 
-  // Crear nuevo usuario
-  const newUser = await mockDb.createUser({
-    email,
-    full_name: fullName,
-    password_hash: password,
+  // Verificar configuración de Supabase
+  const USE_SUPABASE = process.env.NEXT_PUBLIC_USE_SUPABASE === 'true'
+  console.log('🔍 [SignUp] Configuración:', {
+    USE_SUPABASE,
+    envValue: process.env.NEXT_PUBLIC_USE_SUPABASE,
+    hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    hasServiceKey: !!process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY,
   })
 
-  // Si es ADMIN, crear organización automáticamente
-  if (role === 'ADMIN') {
-    await mockDb.ensureUserHasOrganization(newUser.id)
+  try {
+    // Crear nuevo usuario
+    const newUser = await mockDb.createUser({
+      email,
+      full_name: fullName,
+      password_hash: password,
+    })
+
+    console.log('✅ [SignUp] Usuario creado:', {
+      id: newUser.id,
+      email: newUser.email,
+      isSupabaseId: !newUser.id.startsWith('user-'),
+    })
+
+    // Si es ADMIN, crear organización automáticamente
+    if (role === 'ADMIN') {
+      try {
+        await mockDb.ensureUserHasOrganization(newUser.id)
+        console.log('✅ [SignUp] Organización creada para ADMIN')
+      } catch (orgError) {
+        console.error('❌ [SignUp] Error al crear organización:', orgError)
+        // No lanzar error, el usuario ya se creó
+      }
+    }
+    // Si es EMPLOYEE, no crear organización (será agregado por un admin)
+
+    // Crear sesión
+    currentSession = { user: newUser }
+
+    // Guardar sesión en localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mock_session', JSON.stringify(currentSession))
+    }
+
+    return currentSession
+  } catch (error: any) {
+    console.error('❌ [SignUp] Error al crear usuario:', error)
+    throw new Error(`Error al crear usuario: ${error.message || 'Error desconocido'}`)
   }
-  // Si es EMPLOYEE, no crear organización (será agregado por un admin)
-
-  // Crear sesión
-  currentSession = { user: newUser }
-
-  // Guardar sesión en localStorage
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('mock_session', JSON.stringify(currentSession))
-  }
-
-  return currentSession
 }
 
 export async function signInMock(email: string, password: string): Promise<{ user: User } | null> {

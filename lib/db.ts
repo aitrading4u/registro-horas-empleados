@@ -8,11 +8,23 @@ const USE_SUPABASE = process.env.NEXT_PUBLIC_USE_SUPABASE === 'true'
 
 // Log para debug
 if (typeof window !== 'undefined') {
-  console.log('🔍 [DB] Configuración:', {
+  const config = {
     USE_SUPABASE,
     envValue: process.env.NEXT_PUBLIC_USE_SUPABASE,
-    usingSupabase: USE_SUPABASE ? 'SÍ' : 'NO (usando Mock DB)'
-  })
+    hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    hasServiceKey: !!process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY,
+    usingSupabase: USE_SUPABASE ? 'SÍ ✅' : 'NO ❌ (usando Mock DB)'
+  }
+  
+  console.log('🔍 [DB] Configuración:', config)
+  
+  if (!USE_SUPABASE) {
+    console.error('❌ [DB] ERROR: Estás usando Mock DB. Los datos NO se guardarán en Supabase.')
+    console.error('❌ [DB] Solución: Configura NEXT_PUBLIC_USE_SUPABASE=true en Vercel y haz redeploy')
+  } else {
+    console.log('✅ [DB] Usando Supabase correctamente')
+  }
 }
 
 // Crear objeto mockDb compatible según la configuración

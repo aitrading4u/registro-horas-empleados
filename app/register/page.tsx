@@ -66,7 +66,16 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       console.error('Error en registro:', err)
-      setError(err.message || 'Error al crear la cuenta')
+      let errorMessage = err.message || 'Error al crear la cuenta'
+      
+      // Mensaje más claro si es un error de Supabase
+      if (errorMessage.includes('relation') || errorMessage.includes('does not exist')) {
+        errorMessage = 'Error de conexión con la base de datos. Verifica la configuración de Supabase.'
+      } else if (errorMessage.includes('Faltan variables')) {
+        errorMessage = 'Error de configuración: Faltan variables de entorno de Supabase. Contacta al administrador.'
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

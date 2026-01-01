@@ -46,6 +46,13 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 export async function createUser(user: Omit<User, 'id' | 'created_at'>): Promise<User> {
   const supabase = getSupabaseClient()
+  
+  console.log('🔵 [Supabase] Creando usuario:', {
+    email: user.email,
+    full_name: user.full_name,
+    hasPassword: !!user.password_hash,
+  })
+  
   const { data, error } = await supabase
     .from('users')
     .insert({
@@ -56,7 +63,16 @@ export async function createUser(user: Omit<User, 'id' | 'created_at'>): Promise
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('❌ [Supabase] Error al crear usuario:', error)
+    throw error
+  }
+  
+  console.log('✅ [Supabase] Usuario creado exitosamente:', {
+    id: data.id,
+    email: data.email,
+  })
+  
   return data as User
 }
 

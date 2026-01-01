@@ -9,12 +9,14 @@ import { getCurrentUserMock } from '@/lib/auth-mock'
 import { useEffect, useState } from 'react'
 import type { User, UserRole } from '@/types'
 import Badge from '@/components/ui/Badge'
+import { mockDb } from '@/lib/db'
 
 export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null)
+  const [actualRole, setActualRole] = useState<UserRole | null>(null) // Rol real del usuario
 
   useEffect(() => {
     loadUserData()
@@ -40,11 +42,36 @@ export default function Navbar() {
   const loadUserData = async () => {
     const currentUser = await getCurrentUserMock()
     setUser(currentUser)
+    
+    // Obtener el rol real del usuario en su organización
+    if (currentUser) {
+      const orgs = await mockDb.getUserOrganizations(currentUser.id)
+      if (orgs.length > 0) {
+        const realRole = await mockDb.getUserRoleInOrganization(currentUser.id, orgs[0].id)
+        setActualRole(realRole || 'EMPLOYEE')
+      } else {
+        setActualRole('EMPLOYEE')
+      }
+    }
+    
     const role = await getCurrentRoleMock()
     setCurrentRole(role)
   }
 
   const handleRoleChange = async (role: UserRole) => {
+    // Validar que el usuario solo pueda cambiar a roles que realmente tiene
+    if (actualRole && actualRole === 'EMPLOYEE' && role === 'ADMIN') {
+      // Empleados no pueden cambiar a vista de administrador
+      alert('No tienes permisos de administrador. Solo puedes ver la vista de empleado.')
+      return
+    }
+    
+    // Solo permitir cambiar a ADMIN si el usuario realmente es ADMIN o MANAGER
+    if (role === 'ADMIN' && actualRole && actualRole !== 'ADMIN' && actualRole !== 'MANAGER') {
+      alert('No tienes permisos de administrador.')
+      return
+    }
+    
     setCurrentRoleMock(role)
     setCurrentRole(role)
     router.refresh()
@@ -92,13 +119,16 @@ export default function Navbar() {
             >
               Personal
             </Button>
-            <Button
-              size="sm"
-              variant={currentRole === 'ADMIN' ? 'primary' : 'outline'}
-              onClick={() => handleRoleChange('ADMIN')}
-            >
-              Administrador
-            </Button>
+            {/* Solo mostrar botón de Administrador si el usuario realmente es ADMIN o MANAGER */}
+            {(actualRole === 'ADMIN' || actualRole === 'MANAGER') && (
+              <Button
+                size="sm"
+                variant={currentRole === 'ADMIN' ? 'primary' : 'outline'}
+                onClick={() => handleRoleChange('ADMIN')}
+              >
+                Administrador
+              </Button>
+            )}
             {currentRole && (
               <Badge variant="info" className="ml-2">
                 {currentRole === 'EMPLOYEE' ? 'Empleado' : currentRole === 'MANAGER' ? 'Encargado' : 'Admin'}
