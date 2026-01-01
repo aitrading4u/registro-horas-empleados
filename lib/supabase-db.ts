@@ -394,23 +394,56 @@ export async function getLastTimeEntry(
 // ============ INCIDENTS ============
 export async function createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'updated_at'>): Promise<Incident> {
   const supabase = getSupabaseClient()
+  
+  // Validar que el tipo sea uno de los permitidos
+  const allowedTypes = ['FORGOT_ENTRY', 'LATE_ARRIVAL', 'NOT_WORKING']
+  if (!allowedTypes.includes(incident.type)) {
+    throw new Error(`Tipo de incidencia inválido: ${incident.type}. Debe ser uno de: ${allowedTypes.join(', ')}`)
+  }
+  
+  // Validar que el status sea uno de los permitidos
+  const allowedStatuses = ['PENDING', 'APPROVED', 'REJECTED']
+  if (!allowedStatuses.includes(incident.status)) {
+    throw new Error(`Estado de incidencia inválido: ${incident.status}. Debe ser uno de: ${allowedStatuses.join(', ')}`)
+  }
+  
+  console.log('🔵 [Supabase] Creando incidencia:', {
+    type: incident.type,
+    status: incident.status,
+    date: incident.date,
+    hasDescription: !!incident.description,
+  })
+  
+  const insertData = {
+    organization_id: incident.organization_id,
+    user_id: incident.user_id,
+    type: incident.type,
+    status: incident.status,
+    date: incident.date,
+    description: incident.description,
+    time_entry_id: incident.time_entry_id || null,
+    approved_by: incident.reviewed_by || null,
+    approved_at: incident.reviewed_at || null,
+  }
+  
+  console.log('🔵 [Supabase] Datos a insertar:', JSON.stringify(insertData, null, 2))
+  
   const { data, error } = await supabase
     .from('incidents')
-    .insert({
-      organization_id: incident.organization_id,
-      user_id: incident.user_id,
-      type: incident.type,
-      status: incident.status,
-      date: incident.date,
-      description: incident.description,
-      time_entry_id: incident.time_entry_id,
-      approved_by: incident.reviewed_by,
-      approved_at: incident.reviewed_at,
-    })
+    .insert(insertData)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('❌ [Supabase] Error al crear incidencia:', error)
+    console.error('❌ [Supabase] Detalles:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    })
+    throw error
+  }
   
   // Mapear los campos de la base de datos al tipo TypeScript
   const result = data as any

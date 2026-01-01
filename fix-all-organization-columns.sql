@@ -32,3 +32,4 @@ WHERE table_name = 'organizations'
 AND table_schema = 'public'
 ORDER BY ordinal_position;
 
+
