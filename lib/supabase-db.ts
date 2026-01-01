@@ -68,10 +68,35 @@ export async function createUser(user: Omit<User, 'id' | 'created_at'>): Promise
     throw error
   }
   
+  if (!data) {
+    throw new Error('Usuario creado pero no se retornó ningún dato')
+  }
+  
   console.log('✅ [Supabase] Usuario creado exitosamente:', {
     id: data.id,
     email: data.email,
+    full_name: data.full_name,
   })
+  
+  // Verificar que el usuario realmente se guardó en la base de datos
+  // Esperar un momento para que la transacción se complete
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  const { data: verifyUser, error: verifyError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', data.id)
+    .single()
+  
+  if (verifyError || !verifyUser) {
+    console.error('❌ [Supabase] Usuario creado pero no se encuentra en la BD:', {
+      userId: data.id,
+      error: verifyError,
+    })
+    throw new Error('Usuario creado pero no se pudo verificar en la base de datos')
+  }
+  
+  console.log('✅ [Supabase] Usuario verificado en la base de datos:', verifyUser.id)
   
   return data as User
 }
@@ -510,6 +535,24 @@ export async function deleteScheduledTime(scheduledTimeId: string): Promise<bool
 export async function ensureUserHasOrganization(userId: string): Promise<void> {
   const orgs = await getUserOrganizations(userId)
   if (orgs.length === 0) {
+    // Verificar que el usuario existe antes de crear la organización
+    const supabase = getSupabaseClient()
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single()
+    
+    if (userError || !user) {
+      console.error('❌ [ensureUserHasOrganization] Usuario no encontrado:', {
+        userId,
+        error: userError,
+      })
+      throw new Error(`Usuario con ID ${userId} no existe en la base de datos. No se puede crear la organización.`)
+    }
+    
+    console.log('✅ [ensureUserHasOrganization] Usuario verificado:', userId)
+    
     // Crear restaurante de prueba
     await createOrganization(
       {
