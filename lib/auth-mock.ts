@@ -7,22 +7,50 @@ import type { User, UserRole } from '@/types'
 // Simular sesión en memoria (en producción será con cookies/tokens)
 let currentSession: { user: User; currentRole?: UserRole } | null = null
 
+export async function signUpMock(
+  email: string,
+  password: string,
+  fullName: string
+): Promise<{ user: User } | null> {
+  // Verificar que el usuario no exista
+  const existingUser = await mockDb.getUserByEmail(email)
+  if (existingUser) {
+    throw new Error('Este email ya está registrado')
+  }
+
+  // Crear nuevo usuario
+  const newUser = await mockDb.createUser({
+    email,
+    full_name: fullName,
+    password_hash: password,
+  })
+
+  // Asegurar que el usuario tenga al menos un restaurante asignado
+  await mockDb.ensureUserHasOrganization(newUser.id)
+
+  // Crear sesión
+  currentSession = { user: newUser }
+
+  // Guardar sesión en localStorage
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('mock_session', JSON.stringify(currentSession))
+  }
+
+  return currentSession
+}
+
 export async function signInMock(email: string, password: string): Promise<{ user: User } | null> {
   // Buscar usuario por email
   let user = await mockDb.getUserByEmail(email)
   
   if (!user) {
-    // Si no existe, crear usuario automáticamente (registro automático)
-    user = await mockDb.createUser({
-      email,
-      full_name: email.split('@')[0],
-      password_hash: password,
-    })
-  } else {
-    // Verificar contraseña si el usuario tiene una
-    if (user.password_hash && user.password_hash !== password) {
-      return null // Contraseña incorrecta
-    }
+    // Usuario no existe - debe registrarse primero
+    return null
+  }
+
+  // Verificar contraseña
+  if (user.password_hash && user.password_hash !== password) {
+    return null // Contraseña incorrecta
   }
 
   // Si estamos usando Supabase y el usuario tiene un ID de Mock DB, migrarlo a Supabase
@@ -62,10 +90,6 @@ export async function signInMock(email: string, password: string): Promise<{ use
   // Guardar sesión en localStorage
   if (typeof window !== 'undefined') {
     localStorage.setItem('mock_session', JSON.stringify(currentSession))
-    
-    // Guardar credenciales para "recordar usuario" (opcional, solo si el usuario lo permite)
-    // Por ahora, guardamos solo el email para facilitar el login
-    localStorage.setItem('saved_email', email)
   }
 
   return currentSession

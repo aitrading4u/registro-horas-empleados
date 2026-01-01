@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { signInMock } from '@/lib/auth-mock'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
@@ -126,6 +127,13 @@ export default function LoginPage() {
             {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </Button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-gray-600">
+          ¿No tienes una cuenta?{' '}
+          <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+            Regístrate aquí
+          </Link>
+        </p>
       </Card>
     </div>
   )
