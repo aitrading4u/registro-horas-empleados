@@ -487,13 +487,31 @@ export async function getIncidents(
 
   const { data, error } = await query
 
-  if (error || !data) return []
+  if (error) {
+    console.error('❌ [Supabase] Error al obtener incidencias:', error)
+    console.error('❌ [Supabase] Detalles:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    })
+    return []
+  }
+  
+  if (!data) return []
+  
   // Mapear los campos de la base de datos al tipo TypeScript
-  return (data as any[]).map(item => ({
-    ...item,
-    reviewed_by: item.approved_by,
-    reviewed_at: item.approved_at,
-  })) as Incident[]
+  return (data as any[]).map(item => {
+    const mapped = {
+      ...item,
+      reviewed_by: item.approved_by || null,
+      reviewed_at: item.approved_at || null,
+    }
+    // Eliminar campos que no existen en el tipo TypeScript
+    delete (mapped as any).approved_by
+    delete (mapped as any).approved_at
+    return mapped
+  }) as Incident[]
 }
 
 export async function updateIncident(
