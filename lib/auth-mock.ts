@@ -109,7 +109,8 @@ export async function getCurrentUserMock(): Promise<User | null> {
         if (USE_SUPABASE && session.user && session.user.id && session.user.id.startsWith('user-')) {
           const supabaseUser = await mockDb.getUserByEmail(session.user.email)
           if (supabaseUser && !supabaseUser.id.startsWith('user-')) {
-            currentSession.user = supabaseUser
+            session.user = supabaseUser
+            currentSession = session
             localStorage.setItem('mock_session', JSON.stringify(currentSession))
             return supabaseUser
           }
