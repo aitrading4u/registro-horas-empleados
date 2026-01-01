@@ -59,6 +59,8 @@ export default function LoginPage() {
         <p className="text-center text-gray-600 mb-8">
           Inicia sesión para continuar
         </p>
+        
+        {/* Versión actualizada - sin mensaje de desarrollo */}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
