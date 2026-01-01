@@ -7,15 +7,30 @@ import type { User, UserRole } from '@/types'
 // Simular sesión en memoria (en producción será con cookies/tokens)
 let currentSession: { user: User; currentRole?: UserRole } | null = null
 
+export async function canRegisterAsAdmin(): Promise<boolean> {
+  // Verificar si hay usuarios en el sistema
+  const { getAllUsers } = await import('@/lib/db')
+  const allUsers = await getAllUsers()
+  // Si no hay usuarios, el primer registro puede ser admin
+  return allUsers.length === 0
+}
+
 export async function signUpMock(
   email: string,
   password: string,
-  fullName: string
+  fullName: string,
+  role: 'ADMIN' | 'EMPLOYEE' = 'EMPLOYEE'
 ): Promise<{ user: User } | null> {
   // Verificar que el usuario no exista
   const existingUser = await mockDb.getUserByEmail(email)
   if (existingUser) {
     throw new Error('Este email ya está registrado')
+  }
+
+  // Validar que solo el primer usuario pueda ser admin
+  const canBeAdmin = await canRegisterAsAdmin()
+  if (role === 'ADMIN' && !canBeAdmin) {
+    throw new Error('Solo el primer usuario puede registrarse como administrador')
   }
 
   // Crear nuevo usuario
@@ -25,8 +40,11 @@ export async function signUpMock(
     password_hash: password,
   })
 
-  // Asegurar que el usuario tenga al menos un restaurante asignado
-  await mockDb.ensureUserHasOrganization(newUser.id)
+  // Si es ADMIN, crear organización automáticamente
+  if (role === 'ADMIN') {
+    await mockDb.ensureUserHasOrganization(newUser.id)
+  }
+  // Si es EMPLOYEE, no crear organización (será agregado por un admin)
 
   // Crear sesión
   currentSession = { user: newUser }

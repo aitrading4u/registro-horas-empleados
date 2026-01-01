@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signUpMock } from '@/lib/auth-mock'
+import { signUpMock, canRegisterAsAdmin } from '@/lib/auth-mock'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
@@ -14,9 +14,16 @@ export default function RegisterPage() {
     fullName: '',
     password: '',
     confirmPassword: '',
+    role: 'EMPLOYEE' as 'ADMIN' | 'EMPLOYEE',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [canBeAdmin, setCanBeAdmin] = useState(false)
+
+  useEffect(() => {
+    // Verificar si puede registrarse como admin
+    canRegisterAsAdmin().then(setCanBeAdmin)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,7 +53,8 @@ export default function RegisterPage() {
       const result = await signUpMock(
         formData.email,
         formData.password,
-        formData.fullName
+        formData.fullName,
+        formData.role
       )
       
       if (result) {
@@ -148,6 +156,34 @@ export default function RegisterPage() {
               placeholder="123"
             />
           </div>
+
+          {canBeAdmin && (
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Cuenta
+              </label>
+              <select
+                id="role"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'EMPLOYEE' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="ADMIN">Administrador (Puede crear restaurantes)</option>
+                <option value="EMPLOYEE">Empleado (Será agregado a un restaurante)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.role === 'ADMIN' 
+                  ? 'Como administrador podrás crear y gestionar restaurantes.'
+                  : 'Como empleado serás agregado a un restaurante por un administrador.'}
+              </p>
+            </div>
+          )}
+
+          {!canBeAdmin && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-sm">
+              Te registrarás como <strong>Empleado</strong>. Un administrador te agregará a un restaurante.
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

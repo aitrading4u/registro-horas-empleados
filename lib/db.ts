@@ -23,6 +23,12 @@ export const mockDb = USE_SUPABASE ? {
   createUser: supabaseDb.createUser,
   updateUser: supabaseDb.updateUser,
   deleteUser: supabaseDb.deleteUser,
+  getAllUsers: async () => {
+    const { createClient } = await import('@/lib/supabase/client-dev')
+    const supabase = createClient()
+    const { data } = await supabase.from('users').select('*')
+    return (data || []) as any[]
+  },
   
   // Organizations
   getOrganizationById: supabaseDb.getOrganizationById,
@@ -61,6 +67,13 @@ export const getUserByEmail = USE_SUPABASE ? supabaseDb.getUserByEmail : (...arg
 export const createUser = USE_SUPABASE ? supabaseDb.createUser : (...args: Parameters<typeof mockDbInstance.createUser>) => mockDbInstance.createUser(...args)
 export const updateUser = USE_SUPABASE ? supabaseDb.updateUser : (...args: Parameters<typeof mockDbInstance.updateUser>) => mockDbInstance.updateUser(...args)
 export const deleteUser = USE_SUPABASE ? supabaseDb.deleteUser : (...args: Parameters<typeof mockDbInstance.deleteUser>) => mockDbInstance.deleteUser(...args)
+export const getAllUsers = USE_SUPABASE ? (async () => {
+  // En Supabase, obtener todos los usuarios
+  const { createClient } = await import('@/lib/supabase/client-dev')
+  const supabase = createClient()
+  const { data } = await supabase.from('users').select('*')
+  return (data || []) as any[]
+}) : (...args: Parameters<typeof mockDbInstance.getAllUsers>) => mockDbInstance.getAllUsers(...args)
 export const getOrganizationById = USE_SUPABASE ? supabaseDb.getOrganizationById : (...args: Parameters<typeof mockDbInstance.getOrganizationById>) => mockDbInstance.getOrganizationById(...args)
 export const getUserOrganizations = USE_SUPABASE ? supabaseDb.getUserOrganizations : (...args: Parameters<typeof mockDbInstance.getUserOrganizations>) => mockDbInstance.getUserOrganizations(...args)
 export const createOrganization = USE_SUPABASE ? supabaseDb.createOrganization : (...args: Parameters<typeof mockDbInstance.createOrganization>) => mockDbInstance.createOrganization(...args)
