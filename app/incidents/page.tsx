@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentUserMock } from '@/lib/auth-mock'
 import { getUserOrganizations } from '@/lib/organizations'
-import { mockDb } from '@/lib/db'
+import { mockDb, getIncidents } from '@/lib/db'
 import type { User, Organization, Incident } from '@/types'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -83,8 +83,8 @@ export default function IncidentsPage() {
     // Si es ADMIN o MANAGER, mostrar todas las incidencias (pasar null para userId)
     // Si es EMPLOYEE, solo las suyas (pasar user.id)
     const canApprove = canApproveIncidents(currentRole)
-    const userId = canApprove ? null : user.id
-    const incs = await mockDb.getIncidents(selectedOrg.id, userId)
+    const userId: string | null = canApprove ? null : user.id
+    const incs = await getIncidents(selectedOrg.id, userId)
     setIncidents(incs)
   }
 

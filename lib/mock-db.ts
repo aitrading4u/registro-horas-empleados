@@ -404,7 +404,7 @@ class MockDatabase {
 
   async getIncidents(
     organizationId: string,
-    userId?: string,
+    userId: string | null,
     status?: IncidentStatus
   ): Promise<Incident[]> {
     let incidents = Array.from(this.incidents.values())
