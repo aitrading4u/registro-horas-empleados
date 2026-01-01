@@ -12,12 +12,11 @@ export async function signInMock(email: string, password: string): Promise<{ use
   let user = await mockDb.getUserByEmail(email)
   
   if (!user) {
-    // Si no existe, crear usuario automáticamente (solo para desarrollo/admin)
-    // En producción esto no debería pasar
+    // Si no existe, crear usuario automáticamente (registro automático)
     user = await mockDb.createUser({
       email,
       full_name: email.split('@')[0],
-      password_hash: password, // En producción esto será un hash
+      password_hash: password,
     })
   } else {
     // Verificar contraseña si el usuario tiene una

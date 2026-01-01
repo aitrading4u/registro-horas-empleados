@@ -126,10 +126,6 @@ export default function LoginPage() {
             {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </Button>
         </form>
-
-        <p className="mt-4 text-xs text-center text-gray-500">
-          Modo desarrollo: Cualquier email funciona
-        </p>
       </Card>
     </div>
   )
