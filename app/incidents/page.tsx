@@ -80,10 +80,10 @@ export default function IncidentsPage() {
   const loadIncidents = async () => {
     if (!selectedOrg || !user) return
 
-    // Si es ADMIN o MANAGER, mostrar todas las incidencias
-    // Si es EMPLOYEE, solo las suyas
+    // Si es ADMIN o MANAGER, mostrar todas las incidencias (pasar null para userId)
+    // Si es EMPLOYEE, solo las suyas (pasar user.id)
     const canApprove = canApproveIncidents(currentRole)
-    const userId = canApprove ? undefined : user.id
+    const userId = canApprove ? null : user.id
     const incs = await mockDb.getIncidents(selectedOrg.id, userId)
     setIncidents(incs)
   }
