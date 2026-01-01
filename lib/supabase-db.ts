@@ -445,13 +445,29 @@ export async function createIncident(incident: Omit<Incident, 'id' | 'created_at
     throw error
   }
   
+  if (!data) {
+    throw new Error('Incidencia creada pero no se retornó ningún dato')
+  }
+  
+  console.log('✅ [Supabase] Incidencia creada exitosamente:', {
+    id: data.id,
+    type: data.type,
+    status: data.status,
+  })
+  
   // Mapear los campos de la base de datos al tipo TypeScript
   const result = data as any
-  return {
+  const mappedResult = {
     ...result,
-    reviewed_by: result.approved_by,
-    reviewed_at: result.approved_at,
+    reviewed_by: result.approved_by || null,
+    reviewed_at: result.approved_at || null,
   } as Incident
+  
+  // Eliminar campos que no existen en el tipo TypeScript
+  delete (mappedResult as any).approved_by
+  delete (mappedResult as any).approved_at
+  
+  return mappedResult
 }
 
 export async function getIncidents(
