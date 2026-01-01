@@ -138,35 +138,57 @@ export async function createOrganization(
 ): Promise<Organization> {
   const supabase = getSupabaseClient()
   
+  // Verificar que el userId sea un UUID válido (no un ID de Mock DB)
+  if (creatorUserId.startsWith('user-') || creatorUserId.startsWith('org-')) {
+    throw new Error(`ID inválido: ${creatorUserId}. Debe ser un UUID de Supabase, no un ID de Mock DB.`)
+  }
+  
   console.log('🔵 [Supabase] Creando organización...', {
     org,
     creatorUserId,
+    isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(creatorUserId),
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+  })
+  
+  // Preparar datos para insertar
+  const insertData: any = {
+    name: org.name,
+    address: org.address || null,
+    latitude: Number(org.latitude),
+    longitude: Number(org.longitude),
+    allowed_radius: org.allowed_radius || 75,
+    timezone: org.timezone || 'Europe/Madrid',
+    created_by: creatorUserId,
+  }
+  
+  console.log('🔵 [Supabase] Datos a insertar:', JSON.stringify(insertData, null, 2))
+  console.log('🔵 [Supabase] Tipos de datos:', {
+    latitude: typeof insertData.latitude,
+    longitude: typeof insertData.longitude,
+    created_by: typeof insertData.created_by,
+    created_by_value: insertData.created_by,
   })
   
   // Crear organización
   const { data: newOrg, error: orgError } = await supabase
     .from('organizations')
-    .insert({
-      name: org.name,
-      address: org.address,
-      latitude: org.latitude,
-      longitude: org.longitude,
-      allowed_radius: org.allowed_radius,
-      timezone: org.timezone,
-      created_by: creatorUserId,
-    })
+    .insert(insertData)
     .select()
     .single()
 
   if (orgError) {
     console.error('❌ [Supabase] Error al crear organización:', orgError)
-    console.error('❌ [Supabase] Detalles:', {
-      message: orgError.message,
-      details: orgError.details,
-      hint: orgError.hint,
-      code: orgError.code
-    })
+    console.error('❌ [Supabase] Código de error:', orgError.code)
+    console.error('❌ [Supabase] Mensaje:', orgError.message)
+    console.error('❌ [Supabase] Detalles:', orgError.details)
+    console.error('❌ [Supabase] Hint:', orgError.hint)
+    console.error('❌ [Supabase] Datos enviados:', JSON.stringify(insertData, null, 2))
+    
+    // Si es error 400, puede ser problema de tipos o RLS
+    if (orgError.code === 'PGRST116' || orgError.message?.includes('RLS')) {
+      console.error('❌ [Supabase] Posible problema de RLS. Verifica que RLS esté desactivado en Supabase.')
+    }
+    
     throw orgError
   }
 
