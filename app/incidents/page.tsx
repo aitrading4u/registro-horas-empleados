@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentUserMock } from '@/lib/auth-mock'
 import { getUserOrganizations } from '@/lib/organizations'
-import { mockDb, getIncidents } from '@/lib/db'
+import { mockDb, getIncidents, updateIncident } from '@/lib/db'
 import type { User, Organization, Incident } from '@/types'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -92,7 +92,11 @@ export default function IncidentsPage() {
     if (!user) return
 
     try {
-      await mockDb.updateIncidentStatus(incidentId, 'APPROVED', user.id)
+      await updateIncident(incidentId, {
+        status: 'APPROVED',
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+      })
       await loadIncidents()
     } catch (error) {
       console.error('Error approving incident:', error)
@@ -104,7 +108,11 @@ export default function IncidentsPage() {
     if (!user) return
 
     try {
-      await mockDb.updateIncidentStatus(incidentId, 'REJECTED', user.id)
+      await updateIncident(incidentId, {
+        status: 'REJECTED',
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+      })
       await loadIncidents()
     } catch (error) {
       console.error('Error rejecting incident:', error)
