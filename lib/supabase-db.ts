@@ -264,6 +264,17 @@ export async function deleteOrganization(organizationId: string): Promise<boolea
   return !error
 }
 
+export async function getAllOrganizations(): Promise<Organization[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+  return data as Organization[]
+}
+
 // ============ ORGANIZATION MEMBERS ============
 export async function getOrganizationMembers(organizationId: string): Promise<OrganizationMember[]> {
   const supabase = getSupabaseClient()

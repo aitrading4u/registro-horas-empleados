@@ -11,8 +11,9 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import { formatDate, getRoleLabel } from '@/lib/utils'
-import { UserPlus, Edit, Trash2, Mail, User as UserIcon, Clock, Plus, X } from 'lucide-react'
+import { UserPlus, Edit, Trash2, Mail, User as UserIcon, Clock, Plus, X, Users } from 'lucide-react'
 import type { ScheduledTime } from '@/types'
+import { getAllUsers } from '@/lib/db'
 
 export default function StaffPage() {
   const router = useRouter()
@@ -70,17 +71,22 @@ export default function StaffPage() {
   const loadStaff = async () => {
     if (!selectedOrg) return
 
-    // Obtener todos los usuarios que pertenecen a esta organización
-    const members = await mockDb.getOrganizationMembers(selectedOrg.id)
-    const userIds = members.map(m => m.user_id)
-    
-    // Obtener información de cada usuario
-    const users = await Promise.all(
-      userIds.map(id => mockDb.getUserById(id))
-    )
-    
-    const validUsers = users.filter(u => u !== null) as User[]
-    setStaff(validUsers)
+    try {
+      // Obtener todos los usuarios que pertenecen a esta organización
+      const members = await mockDb.getOrganizationMembers(selectedOrg.id)
+      const userIds = members.map(m => m.user_id)
+      
+      // Obtener información de cada usuario
+      const users = await Promise.all(
+        userIds.map(id => mockDb.getUserById(id))
+      )
+      
+      const validUsers = users.filter(u => u !== null) as User[]
+      setStaff(validUsers)
+    } catch (error) {
+      console.error('Error loading staff:', error)
+      setStaff([])
+    }
   }
 
   const handleDeleteUser = async (userId: string) => {
@@ -185,8 +191,16 @@ export default function StaffPage() {
       {staff.length === 0 ? (
         <Card>
           <p className="text-center text-gray-600 py-8">
-            No hay empleados registrados. Crea uno nuevo para comenzar.
+            No hay empleados en este restaurante. Crea uno nuevo o asigna empleados existentes.
           </p>
+          {selectedOrg && (
+            <div className="text-center mt-4">
+              <AssignExistingUsersButton
+                organizationId={selectedOrg.id}
+                onSuccess={loadStaff}
+              />
+            </div>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -838,3 +852,148 @@ function EditStaffForm({
   )
 }
 
+function AssignExistingUsersButton({
+  organizationId,
+  onSuccess,
+}: {
+  organizationId: string
+  onSuccess: () => void
+}) {
+  const [showModal, setShowModal] = useState(false)
+  const [allUsers, setAllUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
+
+  const loadAllUsers = async () => {
+    setLoading(true)
+    try {
+      const users = await getAllUsers()
+      // Obtener usuarios que NO están en esta organización
+      const members = await mockDb.getOrganizationMembers(organizationId)
+      const memberUserIds = new Set(members.map(m => m.user_id))
+      const unassignedUsers = users.filter(u => !memberUserIds.has(u.id))
+      setAllUsers(unassignedUsers)
+    } catch (error) {
+      console.error('Error loading users:', error)
+      setAllUsers([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAssign = async () => {
+    if (selectedUsers.size === 0) {
+      alert('Selecciona al menos un usuario para asignar')
+      return
+    }
+
+    setLoading(true)
+    try {
+      for (const userId of selectedUsers) {
+        await mockDb.addMemberToOrganization(organizationId, userId, 'EMPLOYEE')
+      }
+      setSelectedUsers(new Set())
+      setShowModal(false)
+      onSuccess()
+      alert(`${selectedUsers.size} usuario(s) asignado(s) correctamente`)
+    } catch (error) {
+      console.error('Error assigning users:', error)
+      alert('Error al asignar usuarios')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        onClick={() => {
+          setShowModal(true)
+          loadAllUsers()
+        }}
+      >
+        <Users className="w-4 h-4 mr-2" />
+        Asignar Empleados Existentes
+      </Button>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto m-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Asignar Empleados Existentes</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowModal(false)
+                  setSelectedUsers(new Set())
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {loading ? (
+              <p className="text-center py-8">Cargando usuarios...</p>
+            ) : allUsers.length === 0 ? (
+              <p className="text-center py-8 text-gray-600">
+                No hay usuarios disponibles para asignar. Todos los usuarios ya están en esta organización.
+              </p>
+            ) : (
+              <>
+                <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
+                  {allUsers.map((user) => (
+                    <label
+                      key={user.id}
+                      className="flex items-center space-x-3 p-3 border rounded-md hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.has(user.id)}
+                        onChange={(e) => {
+                          const newSelected = new Set(selectedUsers)
+                          if (e.target.checked) {
+                            newSelected.add(user.id)
+                          } else {
+                            newSelected.delete(user.id)
+                          }
+                          setSelectedUsers(newSelected)
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium">{user.full_name || 'Sin nombre'}</p>
+                        <p className="text-sm text-gray-600">{user.email}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={handleAssign}
+                    disabled={loading || selectedUsers.size === 0}
+                    className="flex-1"
+                  >
+                    {loading ? 'Asignando...' : `Asignar ${selectedUsers.size} usuario(s)`}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowModal(false)
+                      setSelectedUsers(new Set())
+                    }}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      )}
+    </>
+  )
+}

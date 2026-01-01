@@ -212,6 +212,12 @@ class MockDatabase {
       .filter(org => memberIds.includes(org.id))
   }
 
+  async getAllOrganizations(): Promise<Organization[]> {
+    return Array.from(this.organizations.values()).sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }
+
   async createOrganization(
     org: Omit<Organization, 'id' | 'created_at' | 'created_by'>,
     creatorUserId: string

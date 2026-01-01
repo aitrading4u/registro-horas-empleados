@@ -67,7 +67,25 @@ export async function signUpMock(
         // No lanzar error, el usuario ya se creó
       }
     }
-    // Si es EMPLOYEE, no crear organización (será agregado por un admin)
+    // Si es EMPLOYEE, agregarlo automáticamente a la primera organización disponible
+    if (role === 'EMPLOYEE') {
+      try {
+        // Obtener todas las organizaciones
+        const { getAllOrganizations } = await import('@/lib/db')
+        const allOrgs = await getAllOrganizations()
+        
+        if (allOrgs.length > 0) {
+          // Agregar al empleado a la primera organización como EMPLOYEE
+          await mockDb.addMemberToOrganization(allOrgs[0].id, newUser.id, 'EMPLOYEE')
+          console.log('✅ [SignUp] Empleado agregado a organización:', allOrgs[0].name)
+        } else {
+          console.warn('⚠️ [SignUp] No hay organizaciones disponibles. El empleado será agregado manualmente por un administrador.')
+        }
+      } catch (orgError) {
+        console.error('❌ [SignUp] Error al agregar empleado a organización:', orgError)
+        // No lanzar error, el usuario ya se creó
+      }
+    }
 
     // Crear sesión
     currentSession = { user: newUser }

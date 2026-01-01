@@ -45,6 +45,7 @@ export const mockDb = USE_SUPABASE ? {
   // Organizations
   getOrganizationById: supabaseDb.getOrganizationById,
   getUserOrganizations: supabaseDb.getUserOrganizations,
+  getAllOrganizations: supabaseDb.getAllOrganizations,
   createOrganization: supabaseDb.createOrganization,
   updateOrganization: supabaseDb.updateOrganization,
   deleteOrganization: supabaseDb.deleteOrganization,
@@ -88,6 +89,7 @@ export const getAllUsers = USE_SUPABASE ? (async () => {
 }) : (...args: Parameters<typeof mockDbInstance.getAllUsers>) => mockDbInstance.getAllUsers(...args)
 export const getOrganizationById = USE_SUPABASE ? supabaseDb.getOrganizationById : (...args: Parameters<typeof mockDbInstance.getOrganizationById>) => mockDbInstance.getOrganizationById(...args)
 export const getUserOrganizations = USE_SUPABASE ? supabaseDb.getUserOrganizations : (...args: Parameters<typeof mockDbInstance.getUserOrganizations>) => mockDbInstance.getUserOrganizations(...args)
+export const getAllOrganizations = USE_SUPABASE ? supabaseDb.getAllOrganizations : (...args: Parameters<typeof mockDbInstance.getAllOrganizations>) => mockDbInstance.getAllOrganizations(...args)
 export const createOrganization = USE_SUPABASE ? supabaseDb.createOrganization : (...args: Parameters<typeof mockDbInstance.createOrganization>) => mockDbInstance.createOrganization(...args)
 export const updateOrganization = USE_SUPABASE ? supabaseDb.updateOrganization : (...args: Parameters<typeof mockDbInstance.updateOrganization>) => mockDbInstance.updateOrganization(...args)
 export const deleteOrganization = USE_SUPABASE ? supabaseDb.deleteOrganization : (...args: Parameters<typeof mockDbInstance.deleteOrganization>) => mockDbInstance.deleteOrganization(...args)
