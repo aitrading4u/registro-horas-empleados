@@ -341,12 +341,30 @@ export async function updateMemberRole(
 // ============ TIME ENTRIES ============
 export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'>): Promise<TimeEntry> {
   const supabase = getSupabaseClient()
+  
+  // Asegurar que el tipo sea 'ENTRY' o 'EXIT' en mayúsculas
+  const entryType = (entry.type === 'ENTRY' || entry.type === 'EXIT') 
+    ? entry.type 
+    : entry.type.toUpperCase() === 'ENTRY' || entry.type.toUpperCase() === 'EXIT'
+    ? entry.type.toUpperCase()
+    : 'ENTRY' // Default a ENTRY si no es válido
+  
+  console.log('🔵 [createTimeEntry] Insertando time entry:', {
+    organization_id: entry.organization_id,
+    user_id: entry.user_id,
+    entry_type: entryType,
+    type_original: entry.type,
+    timestamp: entry.timestamp,
+    latitude: entry.latitude,
+    longitude: entry.longitude,
+  })
+  
   const { data, error } = await supabase
     .from('time_entries')
     .insert({
       organization_id: entry.organization_id,
       user_id: entry.user_id,
-      entry_type: entry.type, // Mapear type a entry_type para la base de datos
+      entry_type: entryType, // Mapear type a entry_type para la base de datos
       timestamp: entry.timestamp,
       latitude: entry.latitude,
       longitude: entry.longitude,
@@ -356,7 +374,16 @@ export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'
     .single()
 
   if (error) {
-    console.error('Error creating time entry:', error)
+    console.error('❌ [createTimeEntry] Error creating time entry:', error)
+    console.error('❌ [createTimeEntry] Datos enviados:', {
+      organization_id: entry.organization_id,
+      user_id: entry.user_id,
+      entry_type: entryType,
+      timestamp: entry.timestamp,
+      latitude: entry.latitude,
+      longitude: entry.longitude,
+      device_info: entry.device_info,
+    })
     throw error
   }
   
