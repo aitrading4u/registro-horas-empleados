@@ -233,13 +233,30 @@ export default function DashboardPage() {
           distanciaCalculada: `${Math.round(distance)}m`,
         })
 
-        if (distance > selectedOrg.allowed_radius) {
+        // Si la precisión GPS es muy mala (>200m), ajustar el radio permitido
+        // para compensar la imprecisión del GPS
+        const adjustedRadius = accuracy > 200 
+          ? selectedOrg.allowed_radius + Math.round(accuracy * 0.3) // Aumentar radio en 30% de la precisión
+          : selectedOrg.allowed_radius
+
+        console.log('🔵 [Fichaje] Radio ajustado por precisión:', {
+          radioOriginal: `${selectedOrg.allowed_radius}m`,
+          precisionGPS: `${Math.round(accuracy)}m`,
+          radioAjustado: `${adjustedRadius}m`,
+          distancia: `${Math.round(distance)}m`,
+          dentroDelRadio: distance <= adjustedRadius,
+        })
+
+        if (distance > adjustedRadius) {
           let mensaje = `Estás fuera del radio permitido (${selectedOrg.allowed_radius}m).\n\n`
           mensaje += `Distancia: ${Math.round(distance)}m\n`
-          mensaje += `Precisión GPS: ${Math.round(accuracy)}m\n\n`
+          mensaje += `Precisión GPS: ${Math.round(accuracy)}m\n`
           
-          if (accuracy > 100) {
-            mensaje += `⚠️ La precisión del GPS es baja. Intenta:\n`
+          if (accuracy > 200) {
+            mensaje += `Radio ajustado: ${Math.round(adjustedRadius)}m\n\n`
+            mensaje += `⚠️ La precisión del GPS es muy baja (${Math.round(accuracy)}m).\n`
+            mensaje += `Esto puede hacer que la ubicación detectada no sea precisa.\n\n`
+            mensaje += `Recomendaciones:\n`
             mensaje += `- Activar el GPS del dispositivo\n`
             mensaje += `- Salir al exterior para mejor señal\n`
             mensaje += `- Esperar unos segundos para que el GPS se estabilice\n\n`

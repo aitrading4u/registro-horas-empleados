@@ -35,5 +35,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# gradle
+.gradle/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
 
 

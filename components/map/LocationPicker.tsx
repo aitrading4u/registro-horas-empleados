@@ -34,6 +34,7 @@ function MapClickHandler({ onLocationChange }: { onLocationChange: (lat: number,
 export default function LocationPicker({ latitude, longitude, onLocationChange }: LocationPickerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
+  const [gettingLocation, setGettingLocation] = useState(false)
   const [mapCenter, setMapCenter] = useState<[number, number]>([40.4168, -3.7038]) // Madrid por defecto
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(null)
 
@@ -50,8 +51,10 @@ export default function LocationPicker({ latitude, longitude, onLocationChange }
     reverseGeocode(lat, lng)
   }
 
-  const reverseGeocode = async (lat: number, lng: number) => {
+  const reverseGeocode = async (lat: number, lng: number): Promise<void> => {
     try {
+      console.log('🔵 [LocationPicker] Obteniendo dirección para:', { lat, lng })
+      
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
         {
@@ -60,11 +63,29 @@ export default function LocationPicker({ latitude, longitude, onLocationChange }
           },
         }
       )
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
       const address = data.display_name || ''
+      
+      console.log('✅ [LocationPicker] Dirección obtenida:', address)
+      
+      if (!address) {
+        console.warn('⚠️ [LocationPicker] No se pudo obtener la dirección, usando coordenadas')
+      }
+      
       onLocationChange(lat, lng, address)
     } catch (error) {
-      console.error('Error en reverse geocoding:', error)
+      console.error('❌ [LocationPicker] Error en reverse geocoding:', error)
+      // Aún así, actualizar la ubicación con las coordenadas aunque no tengamos la dirección
       onLocationChange(lat, lng)
     }
   }
@@ -112,20 +133,72 @@ export default function LocationPicker({ latitude, longitude, onLocationChange }
       return
     }
 
+    setGettingLocation(true)
+    console.log('🔵 [LocationPicker] Obteniendo ubicación GPS...')
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const lat = position.coords.latitude
         const lng = position.coords.longitude
+        const accuracy = position.coords.accuracy || 0
+        
+        console.log('✅ [LocationPicker] Ubicación obtenida:', {
+          lat,
+          lng,
+          accuracy: `${Math.round(accuracy)}m`,
+        })
+
+        // Si la precisión es muy mala (>500m), advertir al usuario
+        if (accuracy > 500) {
+          const confirmar = confirm(
+            `⚠️ La precisión del GPS es baja (${Math.round(accuracy)}m).\n\n` +
+            `La ubicación detectada puede no ser exacta.\n\n` +
+            `Recomendaciones:\n` +
+            `- Activa el GPS del dispositivo\n` +
+            `- Sal al exterior para mejor señal\n` +
+            `- Espera unos segundos para que el GPS se estabilice\n\n` +
+            `¿Deseas usar esta ubicación de todas formas?`
+          )
+          
+          if (!confirmar) {
+            setGettingLocation(false)
+            return
+          }
+        }
+
         const pos: [number, number] = [lat, lng]
         setMapCenter(pos)
         setMarkerPosition(pos)
-        reverseGeocode(lat, lng)
+        reverseGeocode(lat, lng).finally(() => {
+          setGettingLocation(false)
+        })
       },
       (error) => {
-        console.error('Error obteniendo ubicación:', error)
-        alert('No se pudo obtener tu ubicación. Verifica que tengas el GPS activado.')
+        setGettingLocation(false)
+        console.error('❌ [LocationPicker] Error obteniendo ubicación:', error)
+        let mensaje = 'No se pudo obtener tu ubicación.\n\n'
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            mensaje += 'Permisos de ubicación denegados. Por favor, permite el acceso a la ubicación en la configuración de tu navegador.'
+            break
+          case error.POSITION_UNAVAILABLE:
+            mensaje += 'La información de ubicación no está disponible. Verifica que tengas el GPS activado.'
+            break
+          case error.TIMEOUT:
+            mensaje += 'Tiempo de espera agotado. Intenta de nuevo.'
+            break
+          default:
+            mensaje += 'Error desconocido. Verifica que tengas el GPS activado.'
+        }
+        
+        alert(mensaje)
       },
-      { timeout: 10000 }
+      { 
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
     )
   }
 
@@ -165,9 +238,10 @@ export default function LocationPicker({ latitude, longitude, onLocationChange }
         onClick={handleUseCurrentLocation}
         variant="outline"
         className="w-full"
+        disabled={gettingLocation}
       >
         <Navigation className="w-4 h-4 mr-2" />
-        Usar mi ubicación actual
+        {gettingLocation ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
       </Button>
 
       {/* Mapa */}
