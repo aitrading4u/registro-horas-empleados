@@ -352,7 +352,7 @@ export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'
   console.log('🔵 [createTimeEntry] Insertando time entry:', {
     organization_id: entry.organization_id,
     user_id: entry.user_id,
-    entry_type: entryType,
+    type: entryType,
     type_original: entry.type,
     timestamp: entry.timestamp,
     latitude: entry.latitude,
@@ -364,7 +364,7 @@ export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'
     .insert({
       organization_id: entry.organization_id,
       user_id: entry.user_id,
-      entry_type: entryType, // Mapear type a entry_type para la base de datos
+      type: entryType, // Usar 'type' directamente, no 'entry_type'
       timestamp: entry.timestamp,
       latitude: entry.latitude,
       longitude: entry.longitude,
@@ -378,7 +378,7 @@ export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'
     console.error('❌ [createTimeEntry] Datos enviados:', {
       organization_id: entry.organization_id,
       user_id: entry.user_id,
-      entry_type: entryType,
+      type: entryType,
       timestamp: entry.timestamp,
       latitude: entry.latitude,
       longitude: entry.longitude,
@@ -387,13 +387,8 @@ export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'
     throw error
   }
   
-  // Mapear entry_type de vuelta a type para el tipo TypeScript
-  const mappedData = {
-    ...data,
-    type: (data as any).entry_type || (data as any).type,
-  } as TimeEntry
-  
-  return mappedData
+  // Los datos ya vienen con 'type', no necesitamos mapear
+  return data as TimeEntry
 }
 
 export async function getTimeEntries(
@@ -419,11 +414,8 @@ export async function getTimeEntries(
 
   if (error || !data) return []
   
-  // Mapear entry_type a type para cada entrada
-  return data.map((entry: any) => ({
-    ...entry,
-    type: entry.entry_type || entry.type,
-  })) as TimeEntry[]
+  // Los datos ya vienen con 'type', no necesitamos mapear
+  return data as TimeEntry[]
 }
 
 export async function getLastTimeEntry(
@@ -442,11 +434,8 @@ export async function getLastTimeEntry(
 
   if (error || !data) return null
   
-  // Mapear entry_type a type
-  return {
-    ...data,
-    type: (data as any).entry_type || (data as any).type,
-  } as TimeEntry
+  // Los datos ya vienen con 'type', no necesitamos mapear
+  return data as TimeEntry
 }
 
 // ============ INCIDENTS ============
