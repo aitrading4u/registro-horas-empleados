@@ -23,3 +23,4 @@ WHERE conname = 'incidents_type_check';
 -- Paso 4: Actualizar el schema cache de Supabase
 NOTIFY pgrst, 'reload schema';
 
+

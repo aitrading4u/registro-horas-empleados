@@ -62,3 +62,4 @@ También puedes abrir el archivo `desactivar-rls-completo.sql` de este proyecto 
 **Ejecuta el SQL ahora y luego recarga la página. ¿Funciona?** 🔧
 
 
+

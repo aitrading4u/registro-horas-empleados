@@ -53,3 +53,4 @@ Comparte el mensaje de error completo de la terminal.
 **Espera 20-30 segundos y luego recarga la página. ¿Qué ves ahora?** 🔄
 
 
+

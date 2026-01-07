@@ -159,3 +159,4 @@ Para migrar tus datos del mock database a Supabase:
 ¿Necesitas ayuda? Revisa la [documentación de Supabase](https://supabase.com/docs)
 
 
+

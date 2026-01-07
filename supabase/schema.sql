@@ -176,7 +176,7 @@
     ALTER TABLE incidents ENABLE ROW LEVEL SECURITY;
     ALTER TABLE scheduled_times ENABLE ROW LEVEL SECURITY;
     ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-
+    
     -- Políticas para users (los usuarios pueden ver su propio perfil)
     CREATE POLICY "Users can view own profile" ON users
     FOR SELECT USING (auth.uid() = id);

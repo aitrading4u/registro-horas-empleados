@@ -188,3 +188,4 @@ Si creas datos en la app y no los ves en Supabase:
 ¡Ya puedes ver todos tus datos! 🎉
 
 
+

@@ -118,3 +118,4 @@ Los empleados podrán iniciar sesión con su email y contraseña de 3 dígitos.
 **Para producción:** Despliega en Vercel y funcionará 24/7 sin tu ordenador.
 
 
+

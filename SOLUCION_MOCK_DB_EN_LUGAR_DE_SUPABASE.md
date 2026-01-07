@@ -98,3 +98,4 @@ Y cuando crees un restaurante, el ID debería ser un **UUID**, no un ID de Mock 
 **Reinicia el servidor ahora y comparte qué ves en la consola cuando recargas la página.** 🔍
 
 
+

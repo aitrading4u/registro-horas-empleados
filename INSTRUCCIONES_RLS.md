@@ -53,3 +53,4 @@ WHERE schemaname = 'public'
 Todas las tablas deberían mostrar `rowsecurity = false`
 
 
+

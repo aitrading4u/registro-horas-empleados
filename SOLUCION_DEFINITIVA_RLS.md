@@ -109,3 +109,4 @@ NEXT_PUBLIC_USE_SUPABASE=true
 **Ejecuta el SQL línea por línea y luego reinicia el servidor. ¿Funciona ahora?** 🔧
 
 
+

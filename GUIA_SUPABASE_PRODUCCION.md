@@ -245,3 +245,4 @@ Cuando migres a autenticación real de Supabase, necesitarás políticas RLS ade
 ¡Tu app estará funcionando 24/7 en la nube! 🎉
 
 
+

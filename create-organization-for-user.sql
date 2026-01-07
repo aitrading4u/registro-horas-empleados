@@ -48,3 +48,4 @@ JOIN organization_members om ON o.id = om.organization_id
 JOIN users u ON om.user_id = u.id
 WHERE u.id = '61882cdb-e863-4bea-8d22-60486100ad15';  -- Reemplaza con el ID del usuario
 
+

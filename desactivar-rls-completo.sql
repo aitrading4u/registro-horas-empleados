@@ -22,3 +22,4 @@ ORDER BY tablename;
 -- Si rowsecurity es 'f' (false), RLS está desactivado ✅
 
 
+

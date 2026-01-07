@@ -68,3 +68,4 @@ END $$;
 -- Paso 6: Actualizar el schema cache de Supabase
 NOTIFY pgrst, 'reload schema';
 
+

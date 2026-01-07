@@ -72,3 +72,4 @@ He creado el archivo `desactivar-rls-completo.sql` que puedes ejecutar directame
 **Ejecuta el SQL para desactivar RLS y luego recarga la página. ¿Funciona ahora?** 🔧
 
 
+

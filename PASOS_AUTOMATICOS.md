@@ -84,3 +84,4 @@ ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
 **¡Solo necesitas ejecutar el SQL y reiniciar el servidor!** 🎉
 
 
+

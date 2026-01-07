@@ -215,7 +215,7 @@ export default function DashboardPage() {
         }
       }
 
-      // Verificar distancia (en producción será más estricto)
+      // Verificar distancia
       if (selectedOrg.latitude && selectedOrg.longitude) {
         const accuracy = position.accuracy || 0
         const distance = calculateDistance(
@@ -233,21 +233,7 @@ export default function DashboardPage() {
           distanciaCalculada: `${Math.round(distance)}m`,
         })
 
-        // Si la precisión del GPS es muy mala (>100m), ajustar el radio permitido
-        // para compensar la imprecisión
-        const adjustedRadius = accuracy > 100 
-          ? selectedOrg.allowed_radius + Math.round(accuracy * 0.5) // Aumentar radio en 50% de la precisión
-          : selectedOrg.allowed_radius
-
-        console.log('🔵 [Fichaje] Radio ajustado por precisión:', {
-          radioOriginal: `${selectedOrg.allowed_radius}m`,
-          precisionGPS: `${Math.round(accuracy)}m`,
-          radioAjustado: `${adjustedRadius}m`,
-          distancia: `${Math.round(distance)}m`,
-          dentroDelRadio: distance <= adjustedRadius,
-        })
-
-        if (distance > adjustedRadius) {
+        if (distance > selectedOrg.allowed_radius) {
           let mensaje = `Estás fuera del radio permitido (${selectedOrg.allowed_radius}m).\n\n`
           mensaje += `Distancia: ${Math.round(distance)}m\n`
           mensaje += `Precisión GPS: ${Math.round(accuracy)}m\n\n`
@@ -316,114 +302,36 @@ export default function DashboardPage() {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
         console.warn('⚠️ [GPS] Geolocalización no disponible')
-        resolve(null) // No usar posición por defecto
+        resolve(null)
         return
       }
 
-      console.log('🔵 [GPS] Obteniendo ubicación GPS con alta precisión...')
+      console.log('🔵 [GPS] Obteniendo ubicación GPS...')
       
-      // Intentar obtener posición con watchPosition para mejor precisión
-      let watchId: number | null = null
-      let positionObtained = false
-      const timeoutId = setTimeout(() => {
-        if (watchId !== null) {
-          navigator.geolocation.clearWatch(watchId)
-        }
-        if (!positionObtained) {
-          console.warn('⚠️ [GPS] Timeout, intentando con getCurrentPosition...')
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const coords = {
-                lat: position.coords.latitude,
-                lon: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-              }
-              console.log('✅ [GPS] Ubicación obtenida (fallback):', {
-                lat: coords.lat,
-                lon: coords.lon,
-                accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
-              })
-              resolve(coords)
-            },
-            (error) => {
-              console.error('❌ [GPS] Error obteniendo ubicación:', error)
-              resolve(null) // No usar posición por defecto
-            },
-            { timeout: 5000, enableHighAccuracy: true, maximumAge: 0 }
-          )
-        }
-      }, 15000) // Timeout de 15 segundos
-
-      // Usar watchPosition para obtener mejor precisión
-      watchId = navigator.geolocation.watchPosition(
+      navigator.geolocation.getCurrentPosition(
         (position) => {
-          const accuracy = position.coords.accuracy || 0
-          
-          // Si la precisión es buena (<50m) o ya pasaron 5 segundos, usar esta posición
-          if (accuracy < 50 || Date.now() - startTime > 5000) {
-            if (watchId !== null) {
-              navigator.geolocation.clearWatch(watchId)
-            }
-            clearTimeout(timeoutId)
-            
-            if (!positionObtained) {
-              positionObtained = true
-              const coords = {
-                lat: position.coords.latitude,
-                lon: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-              }
-              console.log('✅ [GPS] Ubicación obtenida:', {
-                lat: coords.lat,
-                lon: coords.lon,
-                accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
-                tiempo: `${Math.round((Date.now() - startTime) / 1000)}s`,
-              })
-              resolve(coords)
-            }
+          const coords = {
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+            accuracy: position.coords.accuracy,
           }
+          console.log('✅ [GPS] Ubicación obtenida:', {
+            lat: coords.lat,
+            lon: coords.lon,
+            accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
+          })
+          resolve(coords)
         },
         (error) => {
-          if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId)
-          }
-          clearTimeout(timeoutId)
-          
-          if (!positionObtained) {
-            positionObtained = true
-            console.error('❌ [GPS] Error obteniendo ubicación:', error)
-            // Intentar con getCurrentPosition como fallback
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                const coords = {
-                  lat: position.coords.latitude,
-                  lon: position.coords.longitude,
-                  accuracy: position.coords.accuracy,
-                }
-                console.log('✅ [GPS] Ubicación obtenida (fallback):', {
-                  lat: coords.lat,
-                  lon: coords.lon,
-                  accuracy: coords.accuracy ? `${Math.round(coords.accuracy)}m` : 'desconocida',
-                })
-                resolve(coords)
-              },
-            () => {
-              console.error('❌ [GPS] Error obteniendo ubicación (fallback también falló)')
-              // No usar posición por defecto, retornar null para que el usuario sepa que hay un problema
-              resolve(null)
-            },
-              { timeout: 5000, enableHighAccuracy: true, maximumAge: 0 }
-            )
-          }
+          console.error('❌ [GPS] Error obteniendo ubicación:', error)
+          resolve(null)
         },
         { 
           enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 20000
+          timeout: 10000,
+          maximumAge: 0
         }
       )
-      
-      const startTime = Date.now()
     })
   }
 

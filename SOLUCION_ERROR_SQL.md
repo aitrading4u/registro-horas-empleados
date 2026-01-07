@@ -75,3 +75,4 @@ ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
 **Ejecuta el SQL y luego recarga la página. ¿Funciona ahora?** 🔧
 
 
+

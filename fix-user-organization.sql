@@ -53,3 +53,4 @@ JOIN organization_members om ON o.id = om.organization_id
 JOIN users u ON om.user_id = u.id
 WHERE u.email = 'aitrading4u@icloud.com';  -- Cambia por el email de tu usuario
 
+

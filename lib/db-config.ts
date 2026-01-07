@@ -13,3 +13,4 @@ export * from './supabase-db'
 // Para activar Supabase, cambia USE_SUPABASE a true en .env.local
 
 
+

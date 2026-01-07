@@ -346,7 +346,7 @@ export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'
     .insert({
       organization_id: entry.organization_id,
       user_id: entry.user_id,
-      type: entry.type,
+      entry_type: entry.type, // Mapear type a entry_type para la base de datos
       timestamp: entry.timestamp,
       latitude: entry.latitude,
       longitude: entry.longitude,
@@ -355,8 +355,18 @@ export async function createTimeEntry(entry: Omit<TimeEntry, 'id' | 'created_at'
     .select()
     .single()
 
-  if (error) throw error
-  return data as TimeEntry
+  if (error) {
+    console.error('Error creating time entry:', error)
+    throw error
+  }
+  
+  // Mapear entry_type de vuelta a type para el tipo TypeScript
+  const mappedData = {
+    ...data,
+    type: (data as any).entry_type || (data as any).type,
+  } as TimeEntry
+  
+  return mappedData
 }
 
 export async function getTimeEntries(
@@ -381,7 +391,12 @@ export async function getTimeEntries(
   const { data, error } = await query
 
   if (error || !data) return []
-  return data as TimeEntry[]
+  
+  // Mapear entry_type a type para cada entrada
+  return data.map((entry: any) => ({
+    ...entry,
+    type: entry.entry_type || entry.type,
+  })) as TimeEntry[]
 }
 
 export async function getLastTimeEntry(
@@ -399,7 +414,12 @@ export async function getLastTimeEntry(
     .single()
 
   if (error || !data) return null
-  return data as TimeEntry
+  
+  // Mapear entry_type a type
+  return {
+    ...data,
+    type: (data as any).entry_type || (data as any).type,
+  } as TimeEntry
 }
 
 // ============ INCIDENTS ============

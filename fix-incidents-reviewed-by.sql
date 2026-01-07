@@ -73,3 +73,4 @@ ORDER BY ordinal_position;
 -- Paso 8: Actualizar el schema cache de Supabase
 NOTIFY pgrst, 'reload schema';
 
+

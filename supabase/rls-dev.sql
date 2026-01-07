@@ -109,3 +109,4 @@ CREATE POLICY "dev_audit_logs_insert" ON audit_logs
   FOR INSERT WITH CHECK (true);
 
 
+
